@@ -74,14 +74,17 @@ class QuillPolkitAgent(PolkitAgent.Listener):
 
     def _ipc(self, function, data):
         """Send IPC message to Quickshell QML."""
+        cmd = ["quickshell", "ipc", "call", "polkit", function, json.dumps(data)]
         try:
-            subprocess.Popen(
-                ["quickshell", "ipc", "call", "polkit", function, json.dumps(data)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+            if result.returncode != 0:
+                print(f"IPC failed ({result.returncode}): {result.stderr.strip()}", file=sys.stderr, flush=True)
+            else:
+                print(f"IPC OK: polkit.{function}", file=sys.stderr, flush=True)
+        except FileNotFoundError:
+            print(f"IPC error: quickshell not found in PATH", file=sys.stderr, flush=True)
         except Exception as e:
-            print(f"IPC error: {e}", file=sys.stderr)
+            print(f"IPC error: {e}", file=sys.stderr, flush=True)
 
     def do_initiate_authentication(
         self,
