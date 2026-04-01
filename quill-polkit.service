@@ -1,0 +1,14 @@
+[Unit]
+Description=Quill Polkit Authentication Agent
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+ExecStart=/usr/bin/python3 %h/.config/quickshell/quill-polkit/agent.py
+Slice=session.slice
+TimeoutStopSec=5sec
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

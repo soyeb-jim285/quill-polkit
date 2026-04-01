@@ -1,0 +1,6 @@
+[submodule "icons"]
+	path = icons
+	url = https://github.com/soyeb-jim285/quill-icons.git
+[submodule "quill"]
+	path = quill
+	url = https://github.com/soyeb-jim285/quill.git
