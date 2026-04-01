@@ -168,9 +168,7 @@ class QuillPolkitAgent(PolkitAgent.Listener):
                 )
                 task = self._pending.pop(cookie, {}).get("task")
                 if task:
-                    task.return_new_error_literal(
-                        Polkit.error_quark(), 0, "Authentication failed"
-                    )
+                    task.return_boolean(False)
             else:
                 remaining = MAX_ATTEMPTS - pending["attempts"]
                 self._ipc(
@@ -194,7 +192,7 @@ class QuillPolkitAgent(PolkitAgent.Listener):
         """Handle user cancellation from QML."""
         task = self._pending.pop(cookie, {}).get("task")
         if task:
-            task.return_new_error_literal(Polkit.error_quark(), 0, "Authentication cancelled")
+            task.return_boolean(False)
 
     def cleanup(self):
         """Clean up socket on exit."""
