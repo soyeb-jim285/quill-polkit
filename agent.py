@@ -217,7 +217,7 @@ def main():
         agent.register(
             PolkitAgent.RegisterFlags.NONE,
             subject,
-            None,  # object_path (default)
+            "/org/quill/PolkitAgent",
             None,  # cancellable
         )
         print("Quill polkit agent registered.", file=sys.stderr)
