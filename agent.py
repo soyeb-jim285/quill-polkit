@@ -36,41 +36,45 @@ class QuillPolkitAgent(PolkitAgent.Listener):
         self._start_socket_server()
 
     def _start_socket_server(self):
-        """Start Unix domain socket server for receiving passwords from QML."""
+        """Start Unix domain socket server in a background thread."""
         if os.path.exists(SOCKET_PATH):
             os.unlink(SOCKET_PATH)
 
         self._sock_server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._sock_server.bind(SOCKET_PATH)
         os.chmod(SOCKET_PATH, 0o600)
-        self._sock_server.listen(1)
-        self._sock_server.setblocking(False)
+        self._sock_server.listen(5)
 
-        GLib.io_add_watch(
-            GLib.IOChannel.unix_new(self._sock_server.fileno()),
-            GLib.PRIORITY_DEFAULT,
-            GLib.IOCondition.IN,
-            self._on_socket_connection,
-        )
+        self._sock_thread = threading.Thread(target=self._socket_loop, daemon=True)
+        self._sock_thread.start()
 
-    def _on_socket_connection(self, channel, condition):
-        """Handle incoming connection on the Unix socket."""
+    def _socket_loop(self):
+        """Accept connections in a background thread, dispatch to GLib main loop."""
+        while True:
+            try:
+                conn, _ = self._sock_server.accept()
+                data = conn.recv(4096).decode("utf-8").strip()
+                conn.close()
+                if data:
+                    GLib.idle_add(self._process_message, data)
+            except OSError:
+                break
+            except Exception as e:
+                print(f"Socket error: {e}", file=sys.stderr, flush=True)
+
+    def _process_message(self, data):
+        """Process a message on the GLib main thread."""
         try:
-            conn, _ = self._sock_server.accept()
-            data = conn.recv(4096).decode("utf-8").strip()
-            conn.close()
-
-            if data:
-                msg = json.loads(data)
-                cookie = msg.get("cookie", "")
-                if msg.get("type") == "cancel":
-                    self._handle_cancel(cookie)
-                elif msg.get("type") == "password":
-                    self._handle_password(cookie, msg.get("password", ""))
+            msg = json.loads(data)
+            cookie = msg.get("cookie", "")
+            print(f"Socket received: type={msg.get('type')} cookie={cookie[:20]}...", file=sys.stderr, flush=True)
+            if msg.get("type") == "cancel":
+                self._handle_cancel(cookie)
+            elif msg.get("type") == "password":
+                self._handle_password(cookie, msg.get("password", ""))
         except Exception as e:
-            print(f"Socket error: {e}", file=sys.stderr)
-
-        return True  # Keep watching
+            print(f"Message error: {e}", file=sys.stderr, flush=True)
+        return False  # Don't repeat
 
     def _ipc(self, function, data):
         """Send IPC message to Quickshell QML."""
