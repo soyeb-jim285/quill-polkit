@@ -96,6 +96,7 @@ class QuillPolkitAgent(PolkitAgent.Listener):
         user_data,
     ):
         """Called by polkit when authentication is needed."""
+        print(f"AUTH REQUEST: action={action_id} cookie={cookie} message={message}", file=sys.stderr, flush=True)
         task = Gio.Task.new(self, cancellable, callback, user_data)
 
         # Pick the first unix-user identity
