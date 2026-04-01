@@ -219,7 +219,7 @@ async def register_agent(bus):
         session_id = "auto"
 
     # Register as auth agent for this session
-    subject = ("unix-session", {"session-id": Variant("s", session_id)})
+    subject = ["unix-session", {"session-id": Variant("s", session_id)}]
     locale = os.environ.get("LANG", "en_US.UTF-8")
 
     await authority.call_register_authentication_agent(
